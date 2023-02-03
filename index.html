@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Ducky Clicker</title>
+    <script type="text/javascript">
+        function zoom() {
+            document.body.style.zoom = "400%"
+        }
+    </script>
+    <script>
+        var css = `.cta {
+    display: flex;
+    padding: 10px 45px;
+    text-decoration: none;
+    font-family: 'Poppins', sans-serif;
+    font-size: 40px;
+    color: white;
+    background: #6225E6;
+    transition: 1s;
+    box-shadow: 6px 6px 0 black;
+    transform: skewX(-15deg);
+}
+
+.cta:focus {
+   outline: none; 
+}
+
+.cta:hover {
+    transition: 0.5s;
+    box-shadow: 10px 10px 0 #FBC638;
+}
+
+.cta span:nth-child(2) {
+    transition: 0.5s;
+    margin-right: 0px;
+}
+
+.cta:hover  span:nth-child(2) {
+    transition: 0.5s;
+    margin-right: 45px;
+}
+
+  span {
+    transform: skewX(15deg) 
+  }
+
+  span:nth-child(2) {
+    width: 20px;
+    margin-left: 30px;
+    position: relative;
+    top: 12%;
+  }
+  
+/**************SVG****************/
+
+path.one {
+    transition: 0.4s;
+    transform: translateX(-60%);
+}
+
+path.two {
+    transition: 0.5s;
+    transform: translateX(-30%);
+}
+
+.cta:hover path.three {
+    animation: color_anim 1s infinite 0.2s;
+}
+
+.cta:hover path.one {
+    transform: translateX(0%);
+    animation: color_anim 1s infinite 0.6s;
+}
+
+.cta:hover path.two {
+    transform: translateX(0%);
+    animation: color_anim 1s infinite 0.4s;
+}
+
+/* SVG animations */
+
+@keyframes color_anim {
+    0% {
+        fill: white;
+    }
+    50% {
+        fill: #FBC638;
+    }
+    100% {
+        fill: white;
+    }
+}`,
+            head = document.head || document.getElementsByTagName('head')[0],
+            style = document.createElement('style');
+
+        head.appendChild(style);
+
+        style.type = 'text/css';
+        if (style.styleSheet) {
+            // This is required for IE8 and below.
+            style.styleSheet.cssText = css;
+        } else {
+            style.appendChild(document.createTextNode(css));
+        }
+    </script>
+</head>
+
+<body>
+    <h1 id="mainTitle">A cookie clicker remake made entirely in JS</h1>
+
+    <h2 id="secondaryTitle">Under the hood:</h2>
+
+    <pre id="code2"
+        style="font-size: 14px;border: 2px solid grey;width: 95%;border-left: 12px solid green;border-radius: 5px;padding: 14px; overflow-x: auto;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;"><code id="code">var clicks = 0.0;
+var rebirths = 0.0;
+var cps = 1;
+var cpsP = 1;
+var autoclickerRate = 10000 / rebirths;
+var debounce = false;
+var interval = 5000;
+var intervalId;
+
+alert(`Welcome to Ducky Clicker!   A basic Cookie Clicker remake!
+1000 clicks: Autoclicker every 5 seconds
+2000 clicks: Autoclicker every 4 seconds
+3000 clicks: Autoclicker every 3 seconds
+4000 clicks: Autoclicker every 2 seconds
+5000 clicks: Autoclicker every second
+6000 clicks: Autoclicker every 9/10ths of a second
+7000 clicks: Autoclicker every 8/10ths of a second
+8000 clicks: Autoclicker every 7/10ths of a second
+9000 clicks: Autoclicker every 6/10ths of a second
+10000 clicks: Autoclicker every half a second
+
+15000 clicks: Every click is now worth 2 clicks
+20000 clicks: Every click is now worth 3 clicks
+25000 clicks: Every click is now worth 4 clicks
+30000 clicks: Every click is now worth 5 clicks`);
+
+function sleep(milliseconds) {
+    const date = Date.now();
+    let currentDate = null;
+    do {
+        currentDate = Date.now();
+    } while (currentDate - date < milliseconds);
+}
+
+function convert(val) {
+
+    // thousands, millions, billions etc..
+    var s = ["", "k", "m", "b", "t"];
+
+    // dividing the value by 3.
+    var sNum = Math.floor(("" + val).length / 3);
+
+    // calculating the precised value.
+    var sVal = parseFloat((
+        sNum != 0 ? (val / Math.pow(1000, sNum)) : val).toPrecision(2));
+
+    if (sVal % 1 != 0) {
+        sVal = sVal.toFixed(1);
+    }
+
+    // appending the letter to precised val.
+    return sVal + s[sNum];
+};
+
+const confetti = document.createElement("img");
+confetti.src = "https://www.icegif.com/wp-content/uploads/icegif-105.gif";
+confetti.style.width = "120px";
+confetti.style.height = "120px";
+confetti.style.border = "2px solid darkgrey";
+confetti.style.position = "fixed";
+confetti.style.top = "10px";
+confetti.style.right = "100px";
+confetti.style.display = "none";
+confetti.style.pointerEvents = "none";
+
+const saveB = document.createElement("button");
+saveB.innerHTML = "S";
+saveB.style.top = "100px"
+saveB.style.right = "197.5px";
+saveB.style.position = "fixed";
+
+saveB.onclick = function () {
+    var data = { clicks: clicks, rebirths: rebirths, cps: cps, cpsP: cps, interval: interval }
+    prompt("Your save string:", btoa(btoa(JSON.stringify(data))));
+}
+
+const loadB = document.createElement("button");
+loadB.innerHTML = "L";
+loadB.style.top = "100px"
+loadB.style.right = "100px";
+loadB.style.position = "fixed";
+
+loadB.onclick = function () {
+    var encoded = prompt("Your save string:", "None");
+    if (encoded == "None") {
+    } else {
+        var data = JSON.parse(atob(atob(encoded)));
+        clicks = data.clicks
+        rebirths = data.rebirths
+        cps = data.cps
+        cpsP = data.cpsP
+        interval = data.interval
+        counter.innerHTML = convert(clicks)
+    }
+}
+
+const plusOne = document.createElement("label");
+plusOne.innerHTML = "+1";
+plusOne.style.position = "fixed";
+plusOne.style.display = "none";
+plusOne.style.top = "20px";
+plusOne.style.right = "122.5px";
+
+const counter = document.createElement("label");
+counter.innerHTML = "0";
+counter.style.position = "fixed";
+counter.style.display = "block";
+counter.style.top = "15px";
+counter.style.right = "195px";
+
+const gameWindow = document.createElement("div");
+gameWindow.style.backgroundColor = "grey";
+gameWindow.style.width = "120px";
+gameWindow.style.height = "120px";
+gameWindow.style.border = "2px solid darkgrey";
+gameWindow.style.position = "fixed";
+gameWindow.style.top = "10px";
+gameWindow.style.right = "100px";
+
+const ducky = document.createElement("img");
+ducky.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Rubber_duck.svg/1935px-Rubber_duck.svg.png";
+ducky.style.width = "100px";
+ducky.style.height = "100px";
+ducky.style.position = "fixed";
+ducky.style.top = "20px";
+ducky.style.right = "112.5px";
+ducky.alt = "Rubber Ducky";
+ducky.style.textAlign = "center";
+
+ducky.onclick = function () {
+    autoclickerRate = 10000 / rebirths;
+    if (clicks > 999) {
+        rebirths = 1;
+        ducky.src = "https://i.ibb.co/N3FQsq8/1935px-Rubber-duck-svg.png";
+    }
+    if (clicks > 99999) {
+        confetti.style.display = "block";
+    }
+
+    plusOne.style.display = "block";
+    plusOne.innerHTML = "+" + cpsP;
+
+    ducky.style.width = "90px";
+    ducky.style.height = "90px";
+    ducky.style.position = "fixed";
+    ducky.style.top = "25px";
+    ducky.style.right = "117.5px";
+
+    clicks = clicks + cpsP;
+
+    if (clicks == 1000) {
+        interval = 5000;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 2000) {
+        interval = 4000;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 3000) {
+        interval = 3000;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 4000) {
+        interval = 2000;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 5000) {
+        interval = 1000;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 6000) {
+        interval = 900;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 7000) {
+        interval = 800;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 8000) {
+        interval = 700;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 9000) {
+        interval = 600;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 10000) {
+        interval = 500;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 15000) {
+        interval = 500;
+        cps = 2;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 20000) {
+        interval = 500;
+        cps = 3;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 25000) {
+        interval = 500;
+        cps = 4;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 30000) {
+        interval = 500;
+        cps = 5;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 50000) {
+        alert("Dang, you have strong dedication, I respect that, here ya go.");
+        cpsP = 5;
+        interval = 100;
+        cps = 10;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 35000) {
+        cpsP = 2;
+        interval = 500;
+        cps = 5;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 40000) {
+        cpsP = 3;
+        interval = 500;
+        cps = 5;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 45000) {
+        cpsP = 4;
+        interval = 500;
+        cps = 5;
+        clearInterval(intervalId);
+        startInterval(interval);
+    } else if (clicks == 100000) {
+        alert("100,000?!  You stuck around for a long time, you win!  Now watch the number climb!");
+        cpsP = 100;
+        interval = 0;
+        cps = 1000;
+        clearInterval(intervalId);
+        startInterval(interval);
+    }
+
+    counter.innerHTML = convert(clicks);
+
+    setTimeout(function () {
+        plusOne.style.display = "none";
+
+        ducky.style.width = "100px";
+        ducky.style.height = "100px";
+        ducky.style.position = "fixed";
+        ducky.style.top = "20px";
+        ducky.style.right = "112.5px";
+    }, 250);
+};
+
+// store in a function so we can call it again
+function startInterval(_interval) {
+    // Store the id of the interval so we can clear it later
+    intervalId = setInterval(function () {
+        if (clicks > 999) {
+            rebirths = 1;
+            ducky.src = "https://i.ibb.co/N3FQsq8/1935px-Rubber-duck-svg.png";
+        }
+        if (clicks > 99999) {
+            confetti.style.display = "block";
+        }
+        if (clicks > 999) {
+            plusOne.style.display = "block";
+            plusOne.innerHTML = "+" + cps;
+
+            ducky.style.width = "90px";
+            ducky.style.height = "90px";
+            ducky.style.position = "fixed";
+            ducky.style.top = "25px";
+            ducky.style.right = "117.5px";
+
+            clicks = clicks + cps;
+
+            counter.innerHTML = convert(clicks);
+
+            setTimeout(function () {
+                plusOne.style.display = "none";
+
+                ducky.style.width = "100px";
+                ducky.style.height = "100px";
+                ducky.style.position = "fixed";
+                ducky.style.top = "20px";
+                ducky.style.right = "112.5px";
+            }, 250);
+
+            if (clicks == 1000) {
+                interval = 5000;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 2000) {
+                interval = 4000;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 3000) {
+                interval = 3000;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 4000) {
+                interval = 2000;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 5000) {
+                interval = 1000;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 6000) {
+                interval = 900;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 7000) {
+                interval = 800;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 8000) {
+                interval = 700;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 9000) {
+                interval = 600;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 10000) {
+                interval = 500;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 15000) {
+                interval = 500;
+                cps = 2;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 20000) {
+                interval = 500;
+                cps = 3;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 25000) {
+                interval = 500;
+                cps = 4;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 30000) {
+                interval = 500;
+                cps = 5;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 50000) {
+                alert("Dang, you have strong dedication, I respect that, here ya go.");
+                cpsP = 5;
+                interval = 100;
+                cps = 10;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 35000) {
+                cpsP = 2;
+                interval = 500;
+                cps = 5;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 40000) {
+                cpsP = 3;
+                interval = 500;
+                cps = 5;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 45000) {
+                cpsP = 4;
+                interval = 500;
+                cps = 5;
+                clearInterval(intervalId);
+                startInterval(interval);
+            } else if (clicks == 100000) {
+                alert("100,000?!  You stuck around for a long time, you win!  Now watch the number climb!");
+                cpsP = 100;
+                interval = 0;
+                cps = 1000;
+                clearInterval(intervalId);
+                startInterval(interval);
+            }
+        }
+    }, _interval);
+}
+
+
+function getInterval() {
+    return interval;
+}
+
+
+
+clearInterval(intervalId);
+startInterval(interval);
+
+document.body.appendChild(gameWindow);
+document.body.appendChild(ducky);
+document.body.appendChild(plusOne);
+document.body.appendChild(counter);
+document.body.appendChild(confetti);
+document.body.appendChild(saveB);
+document.body.appendChild(loadB);</code></pre>
+
+    <button style="left: 40%;bottom: 5%;position: fixed;" onclick="play()" id="playButton" class="cta" href="#">
+        <span>PLAY</span>
+        <span>
+            <svg width="66px" height="43px" viewBox="0 0 66 43" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink">
+                <g id="arrow" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                    <path class="one"
+                        d="M40.1543933,3.89485454 L43.9763149,0.139296592 C44.1708311,-0.0518420739 44.4826329,-0.0518571125 44.6771675,0.139262789 L65.6916134,20.7848311 C66.0855801,21.1718824 66.0911863,21.8050225 65.704135,22.1989893 C65.7000188,22.2031791 65.6958657,22.2073326 65.6916762,22.2114492 L44.677098,42.8607841 C44.4825957,43.0519059 44.1708242,43.0519358 43.9762853,42.8608513 L40.1545186,39.1069479 C39.9575152,38.9134427 39.9546793,38.5968729 40.1481845,38.3998695 C40.1502893,38.3977268 40.1524132,38.395603 40.1545562,38.3934985 L56.9937789,21.8567812 C57.1908028,21.6632968 57.193672,21.3467273 57.0001876,21.1497035 C56.9980647,21.1475418 56.9959223,21.1453995 56.9937605,21.1432767 L40.1545208,4.60825197 C39.9574869,4.41477773 39.9546013,4.09820839 40.1480756,3.90117456 C40.1501626,3.89904911 40.1522686,3.89694235 40.1543933,3.89485454 Z"
+                        fill="#FFFFFF"></path>
+                    <path class="two"
+                        d="M20.1543933,3.89485454 L23.9763149,0.139296592 C24.1708311,-0.0518420739 24.4826329,-0.0518571125 24.6771675,0.139262789 L45.6916134,20.7848311 C46.0855801,21.1718824 46.0911863,21.8050225 45.704135,22.1989893 C45.7000188,22.2031791 45.6958657,22.2073326 45.6916762,22.2114492 L24.677098,42.8607841 C24.4825957,43.0519059 24.1708242,43.0519358 23.9762853,42.8608513 L20.1545186,39.1069479 C19.9575152,38.9134427 19.9546793,38.5968729 20.1481845,38.3998695 C20.1502893,38.3977268 20.1524132,38.395603 20.1545562,38.3934985 L36.9937789,21.8567812 C37.1908028,21.6632968 37.193672,21.3467273 37.0001876,21.1497035 C36.9980647,21.1475418 36.9959223,21.1453995 36.9937605,21.1432767 L20.1545208,4.60825197 C19.9574869,4.41477773 19.9546013,4.09820839 20.1480756,3.90117456 C20.1501626,3.89904911 20.1522686,3.89694235 20.1543933,3.89485454 Z"
+                        fill="#FFFFFF"></path>
+                    <path class="three"
+                        d="M0.154393339,3.89485454 L3.97631488,0.139296592 C4.17083111,-0.0518420739 4.48263286,-0.0518571125 4.67716753,0.139262789 L25.6916134,20.7848311 C26.0855801,21.1718824 26.0911863,21.8050225 25.704135,22.1989893 C25.7000188,22.2031791 25.6958657,22.2073326 25.6916762,22.2114492 L4.67709797,42.8607841 C4.48259567,43.0519059 4.17082418,43.0519358 3.97628526,42.8608513 L0.154518591,39.1069479 C-0.0424848215,38.9134427 -0.0453206733,38.5968729 0.148184538,38.3998695 C0.150289256,38.3977268 0.152413239,38.395603 0.154556228,38.3934985 L16.9937789,21.8567812 C17.1908028,21.6632968 17.193672,21.3467273 17.0001876,21.1497035 C16.9980647,21.1475418 16.9959223,21.1453995 16.9937605,21.1432767 L0.15452076,4.60825197 C-0.0425130651,4.41477773 -0.0453986756,4.09820839 0.148075568,3.90117456 C0.150162624,3.89904911 0.152268631,3.89694235 0.154393339,3.89485454 Z"
+                        fill="#FFFFFF"></path>
+                </g>
+            </svg>
+        </span>
+    </button>
+
+    <script defer>
+        function play() {
+
+
+            // Init
+
+            zoom()
+
+            // Hide previous readable elements
+
+            document.getElementById("mainTitle").style.visibility = "hidden";
+            document.getElementById("secondaryTitle").style.visibility = "hidden";
+            document.getElementById("code").style.visibility = "hidden";
+            document.getElementById("code2").style.visibility = "hidden";
+            document.getElementById("playButton").style.visibility = "hidden";
+
+            document.getElementById("code2").style.border = "0px solid grey";
+            document.getElementById("code2").style.borderLeft = "0px solid green";
+
+            // Main game
+
+            var clicks = 0.0;
+            var rebirths = 0.0;
+            var cps = 1;
+            var cpsP = 1;
+            var autoclickerRate = 10000 / rebirths;
+            var debounce = false;
+            var interval = 5000;
+            var intervalId;
+
+            alert(`Welcome to Ducky Clicker!   A basic Cookie Clicker remake!
+1000 clicks: Autoclicker every 5 seconds
+2000 clicks: Autoclicker every 4 seconds
+3000 clicks: Autoclicker every 3 seconds
+4000 clicks: Autoclicker every 2 seconds
+5000 clicks: Autoclicker every second
+6000 clicks: Autoclicker every 9/10ths of a second
+7000 clicks: Autoclicker every 8/10ths of a second
+8000 clicks: Autoclicker every 7/10ths of a second
+9000 clicks: Autoclicker every 6/10ths of a second
+10000 clicks: Autoclicker every half a second
+
+15000 clicks: Every click is now worth 2 clicks
+20000 clicks: Every click is now worth 3 clicks
+25000 clicks: Every click is now worth 4 clicks
+30000 clicks: Every click is now worth 5 clicks`);
+
+            function sleep(milliseconds) {
+                const date = Date.now();
+                let currentDate = null;
+                do {
+                    currentDate = Date.now();
+                } while (currentDate - date < milliseconds);
+            }
+
+            function convert(val) {
+
+                // thousands, millions, billions etc..
+                var s = ["", "k", "m", "b", "t"];
+
+                // dividing the value by 3.
+                var sNum = Math.floor(("" + val).length / 3);
+
+                // calculating the precised value.
+                var sVal = parseFloat((
+                    sNum != 0 ? (val / Math.pow(1000, sNum)) : val).toPrecision(2));
+
+                if (sVal % 1 != 0) {
+                    sVal = sVal.toFixed(1);
+                }
+
+                // appending the letter to precised val.
+                return sVal + s[sNum];
+            };
+
+            const confetti = document.createElement("img");
+            confetti.src = "https://www.icegif.com/wp-content/uploads/icegif-105.gif";
+            confetti.style.width = "120px";
+            confetti.style.height = "120px";
+            confetti.style.border = "2px solid darkgrey";
+            confetti.style.position = "fixed";
+            confetti.style.top = "10px";
+            confetti.style.right = "100px";
+            confetti.style.display = "none";
+            confetti.style.pointerEvents = "none";
+
+            const saveB = document.createElement("button");
+            saveB.innerHTML = "S";
+            saveB.style.top = "110px"
+            saveB.style.right = "196.5px";
+            saveB.style.position = "fixed";
+
+            saveB.onclick = function () {
+                var data = { clicks: clicks, rebirths: rebirths, cps: cps, cpsP: cps, interval: interval }
+                prompt("Your save string:", btoa(btoa(JSON.stringify(data))));
+            }
+
+            const loadB = document.createElement("button");
+            loadB.innerHTML = "L";
+            loadB.style.top = "110px"
+            loadB.style.right = "102.5px";
+            loadB.style.position = "fixed";
+
+            loadB.onclick = function () {
+                var encoded = prompt("Your save string:", "None");
+                if (encoded == "None") {
+                } else {
+                    var data = JSON.parse(atob(atob(encoded)));
+                    clicks = data.clicks
+                    rebirths = data.rebirths
+                    cps = data.cps
+                    cpsP = data.cpsP
+                    interval = data.interval
+                    counter.innerHTML = convert(clicks)
+                }
+            }
+
+            const plusOne = document.createElement("label");
+            plusOne.innerHTML = "+1";
+            plusOne.style.position = "fixed";
+            plusOne.style.display = "none";
+            plusOne.style.top = "20px";
+            plusOne.style.right = "122.5px";
+
+            const counter = document.createElement("label");
+            counter.innerHTML = "0";
+            counter.style.position = "fixed";
+            counter.style.display = "block";
+            counter.style.top = "15px";
+            counter.style.right = "195px";
+
+            const gameWindow = document.createElement("div");
+            gameWindow.style.backgroundColor = "grey";
+            gameWindow.style.width = "120px";
+            gameWindow.style.height = "120px";
+            gameWindow.style.border = "2px solid darkgrey";
+            gameWindow.style.position = "fixed";
+            gameWindow.style.top = "10px";
+            gameWindow.style.right = "100px";
+
+            const ducky = document.createElement("img");
+            ducky.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Rubber_duck.svg/1935px-Rubber_duck.svg.png";
+            ducky.style.width = "100px";
+            ducky.style.height = "100px";
+            ducky.style.position = "fixed";
+            ducky.style.top = "20px";
+            ducky.style.right = "112.5px";
+            ducky.alt = "Rubber Ducky";
+            ducky.style.textAlign = "center";
+
+            ducky.onclick = function () {
+                autoclickerRate = 10000 / rebirths;
+                if (clicks > 999) {
+                    rebirths = 1;
+                    ducky.src = "https://i.ibb.co/N3FQsq8/1935px-Rubber-duck-svg.png";
+                }
+                if (clicks > 99999) {
+                    confetti.style.display = "block";
+                }
+
+                plusOne.style.display = "block";
+                plusOne.innerHTML = "+" + cpsP;
+
+                ducky.style.width = "90px";
+                ducky.style.height = "90px";
+                ducky.style.position = "fixed";
+                ducky.style.top = "25px";
+                ducky.style.right = "117.5px";
+
+                clicks = clicks + cpsP;
+
+                if (clicks == 1000) {
+                    interval = 5000;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 2000) {
+                    interval = 4000;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 3000) {
+                    interval = 3000;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 4000) {
+                    interval = 2000;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 5000) {
+                    interval = 1000;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 6000) {
+                    interval = 900;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 7000) {
+                    interval = 800;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 8000) {
+                    interval = 700;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 9000) {
+                    interval = 600;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 10000) {
+                    interval = 500;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 15000) {
+                    interval = 500;
+                    cps = 2;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 20000) {
+                    interval = 500;
+                    cps = 3;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 25000) {
+                    interval = 500;
+                    cps = 4;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 30000) {
+                    interval = 500;
+                    cps = 5;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 50000) {
+                    alert("Dang, you have strong dedication, I respect that, here ya go.");
+                    cpsP = 5;
+                    interval = 100;
+                    cps = 10;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 35000) {
+                    cpsP = 2;
+                    interval = 500;
+                    cps = 5;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 40000) {
+                    cpsP = 3;
+                    interval = 500;
+                    cps = 5;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 45000) {
+                    cpsP = 4;
+                    interval = 500;
+                    cps = 5;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                } else if (clicks == 100000) {
+                    alert("100,000?!  You stuck around for a long time, you win!  Now watch the number climb!");
+                    cpsP = 100;
+                    interval = 0;
+                    cps = 1000;
+                    clearInterval(intervalId);
+                    startInterval(interval);
+                }
+
+                counter.innerHTML = convert(clicks);
+
+                setTimeout(function () {
+                    plusOne.style.display = "none";
+
+                    ducky.style.width = "100px";
+                    ducky.style.height = "100px";
+                    ducky.style.position = "fixed";
+                    ducky.style.top = "20px";
+                    ducky.style.right = "112.5px";
+                }, 250);
+            };
+
+            // store in a function so we can call it again
+            function startInterval(_interval) {
+                // Store the id of the interval so we can clear it later
+                intervalId = setInterval(function () {
+                    if (clicks > 999) {
+                        rebirths = 1;
+                        ducky.src = "https://i.ibb.co/N3FQsq8/1935px-Rubber-duck-svg.png";
+                    }
+                    if (clicks > 99999) {
+                        confetti.style.display = "block";
+                    }
+                    if (clicks > 999) {
+                        plusOne.style.display = "block";
+                        plusOne.innerHTML = "+" + cps;
+
+                        ducky.style.width = "90px";
+                        ducky.style.height = "90px";
+                        ducky.style.position = "fixed";
+                        ducky.style.top = "25px";
+                        ducky.style.right = "117.5px";
+
+                        clicks = clicks + cps;
+
+                        counter.innerHTML = convert(clicks);
+
+                        setTimeout(function () {
+                            plusOne.style.display = "none";
+
+                            ducky.style.width = "100px";
+                            ducky.style.height = "100px";
+                            ducky.style.position = "fixed";
+                            ducky.style.top = "20px";
+                            ducky.style.right = "112.5px";
+                        }, 250);
+
+                        if (clicks == 1000) {
+                            interval = 5000;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 2000) {
+                            interval = 4000;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 3000) {
+                            interval = 3000;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 4000) {
+                            interval = 2000;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 5000) {
+                            interval = 1000;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 6000) {
+                            interval = 900;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 7000) {
+                            interval = 800;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 8000) {
+                            interval = 700;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 9000) {
+                            interval = 600;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 10000) {
+                            interval = 500;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 15000) {
+                            interval = 500;
+                            cps = 2;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 20000) {
+                            interval = 500;
+                            cps = 3;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 25000) {
+                            interval = 500;
+                            cps = 4;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 30000) {
+                            interval = 500;
+                            cps = 5;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 50000) {
+                            alert("Dang, you have strong dedication, I respect that, here ya go.");
+                            cpsP = 5;
+                            interval = 100;
+                            cps = 10;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 35000) {
+                            cpsP = 2;
+                            interval = 500;
+                            cps = 5;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 40000) {
+                            cpsP = 3;
+                            interval = 500;
+                            cps = 5;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 45000) {
+                            cpsP = 4;
+                            interval = 500;
+                            cps = 5;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        } else if (clicks == 100000) {
+                            alert("100,000?!  You stuck around for a long time, you win!  Now watch the number climb!");
+                            cpsP = 100;
+                            interval = 0;
+                            cps = 1000;
+                            clearInterval(intervalId);
+                            startInterval(interval);
+                        }
+                    }
+                }, _interval);
+            }
+
+
+            function getInterval() {
+                return interval;
+            }
+
+
+
+            clearInterval(intervalId);
+            startInterval(interval);
+
+            document.body.appendChild(gameWindow);
+            document.body.appendChild(ducky);
+            document.body.appendChild(plusOne);
+            document.body.appendChild(counter);
+            document.body.appendChild(confetti);
+            document.body.appendChild(saveB);
+            document.body.appendChild(loadB);
+
+        }
+    </script>
+
+</body>
